@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum BranchStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum Shift {
+  MORNING
+  EVENING
+}
+
+enum PricingMode {
+  FLAT_RATE
+  FAT_SNF
+}
+
+model Branch {
+  id          String       @id @default(cuid())
+  name        String
+  code        String       @unique
+  address     String?
+  status      BranchStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  users       User[]
+  milkmen     Milkman[]
+  collections MilkCollection[]
+  payments    Payment[]
+}
+
+model User {
+  id             String          @id @default(cuid())
+  name           String
+  email          String          @unique
+  password       String
+  role           Role            @default(USER)
+  branchId       String?
+  branch         Branch?         @relation(fields: [branchId], references: [id])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  pricingConfigs PricingConfig[]
+}
+
+model Milkman {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  mobile    String?
+  village   String?
+  address   String?
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  collections MilkCollection[]
+  payments    Payment[]
+}
+
+model MilkCollection {
+  id           String   @id @default(cuid())
+  milkmanId    String
+  milkman      Milkman  @relation(fields: [milkmanId], references: [id])
+  branchId     String
+  branch       Branch   @relation(fields: [branchId], references: [id])
+  date         DateTime @db.Date
+  shift        Shift    @default(MORNING)
+  quantity     Float
+  fat          Float?
+  snf          Float?
+  rate         Float
+  totalAmount  Float
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  milkmanId   String
+  milkman     Milkman  @relation(fields: [milkmanId], references: [id])
+  branchId    String
+  branch      Branch   @relation(fields: [branchId], references: [id])
+  amount      Float
+  paymentDate DateTime @db.Date
+  remarks     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PricingConfig {
+  id             String      @id @default(cuid())
+  mode           PricingMode @default(FLAT_RATE)
+  flatRate       Float?
+  fatCoefficient Float?
+  snfCoefficient Float?
+  setById        String
+  setBy          User        @relation(fields: [setById], references: [id])
+  createdAt      DateTime    @default(now())
+}
